@@ -1,6 +1,6 @@
-from sqlalchemy import Column, Integer, Float, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, Float, TIMESTAMP, ForeignKey, String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
-from geoalchemy2 import Geometry
+# from geoalchemy2 import Geometry
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 
@@ -20,7 +20,7 @@ class QuizEditionRecommendationParams(Base):
     team_size = Column(Float, nullable=False)
     day_of_the_week = Column(Integer, nullable=False)
     time_of_edition = Column(Integer, nullable=False)
-    location = Column(Geometry('POINT'), nullable=False)
+    location = Column(String, nullable=False)
 
 
 class UserFeedback(Base):
@@ -31,10 +31,11 @@ class UserFeedback(Base):
     edition_id = Column(Integer, primary_key=True)
     general_rating = Column(Float, nullable=False)
     host_rating = Column(Float, nullable=False)
-    difficulty_rating = Column(Integer, nullable=False)
-    duration_rating = Column(Integer, nullable=False)
-    number_of_people_rating = Column(Integer, nullable=False)
+    difficulty_rating = Column(Float, nullable=False)
+    duration_rating = Column(Float, nullable=False)
+    number_of_people_rating = Column(Float, nullable=False)
     timestamp = Column(TIMESTAMP(timezone=True), nullable=False)
+    user_rating = Column(Integer, nullable=False)
 
 
 class UserRecommendationParams(Base):
@@ -49,9 +50,10 @@ class UserRecommendationParams(Base):
     edition_count = Column(Integer, nullable=False)
     hosts = Column(JSONB, nullable=False)
     categories = Column(JSONB, nullable=False)
-    time_of_edition = Column(Integer, nullable=False)
+    time_of_edition = Column(Float, nullable=False)
     day_of_week = Column(ARRAY(Integer), nullable=False)
-    last_known_location = Column(Geometry('POINT'))
+    last_known_location = Column(String)
+    last_login = Column(TIMESTAMP(timezone=True), nullable=False)
 
 
 class UserTopRecommendations(Base):
