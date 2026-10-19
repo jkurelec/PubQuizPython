@@ -81,45 +81,37 @@ def clean_small_image(input_image):
 
 
 def clean_image(input_image):
-    # Load the image
     image = cv2.imread(input_image)
     if image is None:
         print(f"Error: Could not load image {input_image}")
     else:
-        height, width = image.shape[:2]  # shape is (H, W, C)
+        height, width = image.shape[:2]
         channels = image.shape[2] if len(image.shape) == 3 else 1
         print(f"Image dimensions: {width}x{height}, Channels: {channels}")
     if image is None:
         print(f"Error: Could not load image {input_image}")
         return
 
-    # Convert to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     blurred = cv2.medianBlur(gray, 3)
 
-    # Apply adaptive thresholding to preserve details in handwritten text
     thresholded = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                         cv2.THRESH_BINARY, 21, 2)
 
-    # Apply Median Blur to reduce noise (preserves edges)
     blurred = cv2.medianBlur(thresholded, 5)
 
-    # Apply CLAHE for contrast enhancement
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     contrast_enhanced = clahe.apply(blurred)
 
-    # Morphological opening to remove small noise (dots)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     noise_removed = cv2.morphologyEx(contrast_enhanced, cv2.MORPH_OPEN, kernel)
 
-    # Contour detection to further remove small dots or unwanted elements
     contours, _ = cv2.findContours(noise_removed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contours:
         if cv2.contourArea(contour) < 100:
             cv2.drawContours(noise_removed, [contour], -1, (255, 255, 255), thickness=cv2.FILLED)
 
-    # Optionally, apply another median blur to smooth any remaining artifacts after cleaning
     return cv2.medianBlur(noise_removed, 3)
 
 

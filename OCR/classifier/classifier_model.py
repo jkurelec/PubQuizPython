@@ -139,7 +139,7 @@ def extract_yolo_detections(model_path="runs/yolo/weights/best.pt",classes_file=
     print(f"All crops saved in: {os.path.abspath(output_dir)}")
 
 
-def extract_sentence_detections(model, class_names, sentence_images, conf_threshold=0.8,device=0):
+def extract_sentence_detections(model, class_names, sentence_images, conf_threshold=0.6,device=0):
     results_list = []
 
     for idx, img in enumerate(sentence_images):
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())
     images_dir = "small_data/images"
     labels_dir = "small_data/labels"
-    extract_yolo_detections()
+    # extract_yolo_detections()
     classes_file = "small_data/classes.txt"
     output_dir = "small_dataset_split"
     # #
@@ -212,12 +212,12 @@ if __name__ == "__main__":
     # ===============================
     # 5️⃣ Train YOLOv8 Model
     # ===============================
-    model = YOLO("runs/yolo/weights/best.pt")
-    # model = YOLO("yolo11n.pt")
+    # model = YOLO("runs/yolo/weights/best.pt")
+    model = YOLO("yolo11n.pt")
 
     model.train(
         data=yolo_yaml_path,
-        epochs=50,
+        epochs=100,
         imgsz=512,
         batch=64,
         project="runs",
@@ -226,7 +226,6 @@ if __name__ == "__main__":
         device=0
     )
 
-    print("YOLOv8 training finished!")
 
     img_path = "small_dataset_split/val/images/0e9bc8f9-IMG_20251021_173048681_processed_3.png"
     result = model.predict(source=img_path, conf=0.6, save=False)

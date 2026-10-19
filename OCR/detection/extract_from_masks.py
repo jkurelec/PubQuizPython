@@ -161,11 +161,11 @@ def extract_individual_sentence_regions2(image, sentence_mask, threshold=0.9):
             # Append the processed region to the list
             sentence_images.append(output_image)
 
-            # plt.figure(figsize=(6, 2))
-            # plt.imshow(output_image, cmap='gray')
-            # plt.title(f"Sentence {+1}")
-            # plt.axis('off')
-            # plt.show()
+            plt.figure(figsize=(6, 2))
+            plt.imshow(output_image, cmap='gray')
+            plt.title(f"Sentence {+1}")
+            plt.axis('off')
+            plt.show()
 
     return sentence_images
 

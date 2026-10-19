@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from sqlalchemy.ext.asyncio import AsyncSession
 from ultralytics import YOLO
 from OCR.classifier.classifier_model import extract_sentence_detections
-from OCR.detection.sentence_model import extract_sentences_from_image, CustomCRAFT
+from OCR.detection.sentence_model import extract_sentences_from_image, segmentation_cnn
 from OCR.ocr.crnn_ocr import ocr_tuple_list, CRNN
 from dependencies import get_db_session
 import database.db_repo as repo
@@ -27,11 +27,11 @@ ALGORITHM = os.getenv("ALGORITHM")
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-detection_model = CustomCRAFT()
+detection_model = segmentation_cnn()
 model_path = "OCR/detection/small_sentence_model.pth"
 detection_model.load_state_dict(torch.load(model_path, map_location=device))
 detection_model.to(device)
-detection_model.eval()  # important for inference
+detection_model.eval()
 
 with open("OCR/classifier/data/classes.txt", "r") as f:
     class_names = [line.strip() for line in f.readlines()]
@@ -159,7 +159,7 @@ async def get_sentence(image: UploadFile = File(...)):
 
     images = extract_sentences_from_image(detection_model, img)
     extractions = extract_sentence_detections(classifier_model, class_names, images)
-    # visualize_results_list(extractions)
+    visualize_results_list(extractions)
     answers = ocr_tuple_list(ocr_model, charset, extractions)
     print(answers)
 

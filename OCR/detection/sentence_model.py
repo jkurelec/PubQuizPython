@@ -18,9 +18,9 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 
-class CustomCRAFT(nn.Module):
+class segmentation_cnn(nn.Module):
     def __init__(self, dropout_rate=0.5):
-        super(CustomCRAFT, self).__init__()
+        super(segmentation_cnn, self).__init__()
         self.conv1 = nn.Conv2d(1, 64, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(64, 128, kernel_size=3, padding=1)
         self.conv3 = nn.Conv2d(128, 256, kernel_size=3, padding=1)
@@ -61,19 +61,15 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         image_name = self.image_files[idx]
-
-        # Load grayscale image (force 'L' mode)
         image_path = os.path.join(self.image_dir, image_name)
-        image = Image.open(image_path).convert('L')  # <-- force grayscale
+        image = Image.open(image_path).convert('L')
 
-        # Load corresponding mask (same name) as grayscale
         mask_path = os.path.join(self.mask_dir, os.path.splitext(image_name)[0] + ".png")
         if os.path.exists(mask_path):
-            mask = Image.open(mask_path).convert('L')  # <-- force grayscale
+            mask = Image.open(mask_path).convert('L')
         else:
-            mask = Image.new('L', image.size, 0)  # black mask if missing
+            mask = Image.new('L', image.size, 0)
 
-        # Apply optional transforms
         if self.transform:
             image = self.transform(image)
             mask = self.transform(mask)
@@ -93,19 +89,15 @@ class CustomDataset2(Dataset):
 
     def __getitem__(self, idx):
         image_name = self.image_files[idx]
-
-        # Load grayscale image
         image_path = os.path.join(self.image_dir, image_name)
-        image = Image.open(image_path).convert('L')  # <-- force grayscale
+        image = Image.open(image_path).convert('L')
 
-        # Load mask as grayscale
         mask_path = os.path.join(self.mask_dir, os.path.splitext(image_name)[0] + ".png")
         if os.path.exists(mask_path):
-            mask = Image.open(mask_path).convert('L')  # <-- force grayscale
+            mask = Image.open(mask_path).convert('L')
         else:
             mask = Image.new('L', image.size, 0)
 
-        # Apply optional transforms
         if self.transform:
             image = self.transform(image)
             mask = self.transform(mask)
@@ -114,14 +106,10 @@ class CustomDataset2(Dataset):
 
 
 def visualize(image, sentence, predicted_mask):
-    """Visualize the original image, ground truth masks, and predicted masks."""
-    # Convert tensors to numpy for visualization
     image_np = image.squeeze(0).cpu().numpy()
 
     ground_truth_masks_np = sentence.squeeze(0).cpu().numpy()
     predicted_masks_np = predicted_mask.squeeze(0).cpu().numpy()
-
-    # Create a figure with subplots
     fig, axs = plt.subplots(2, 2, figsize=(18, 15))
 
     axs[0, 0].imshow(image_np, cmap='gray')
@@ -187,51 +175,34 @@ def show_image_with_masks(image, mask):
 
 
 def train(model, dataloader, criterion, optimizer, device, num_epochs, modelname, validate_dataloader, patience=20):
-    model.train()  # Set the model to training mode
+    model.train()
     best_loss = load_best_loss(f'best_loss_{modelname}.json')
     last_best_epoch = 0
 
     for epoch in range(num_epochs):
-        running_loss = 0.0  # Track the total loss for this epoch
+        running_loss = 0.0
 
         for batch_idx, (image, sentence_masks) in enumerate(dataloader):
-
-            # Move data to the appropriate device (GPU or CPU)
             image = image.to(device)
-
             sentence_masks = sentence_masks.to(device)
-
-            # Forward pass
-            sentence_output= model(image)
-
-            # Get the target size from ground truth masks
-            target_size = sentence_masks.shape[-2:]  # Assuming all masks have the same size
-
+            sentence_output = model(image)
+            target_size = sentence_masks.shape[-2:]
 
             if sentence_output.shape[-2:] != target_size:
                 sentence_output = F.interpolate(sentence_output, size=target_size, mode='bilinear', align_corners=False)
 
-            # Compute loss for each output
             loss_sentence = criterion(sentence_output, sentence_masks)
-
-            # Sum the losses
             total_loss = loss_sentence
-
-            # Backward pass and optimization
             optimizer.zero_grad()
             total_loss.backward()
             optimizer.step()
-
-            # Accumulate loss
             running_loss += total_loss.item()
 
-        # Print the average loss for this epoch
         epoch_loss = running_loss / len(dataloader)
         validation_loss = validate(model, validate_dataloader, criterion, device, epoch)
         if validation_loss < best_loss:
             torch.save(model.state_dict(), f'{modelname}.pth')
             print('Saved model with average loss:', validation_loss)
-            # Update best_loss and save to JSON
             best_loss = validation_loss
             save_best_loss(best_loss, f'best_loss_{modelname}.json')
             last_best_epoch = epoch
@@ -240,12 +211,9 @@ def train(model, dataloader, criterion, optimizer, device, num_epochs, modelname
             break
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}")
 
-
-        #Visualization after each epoch
-        # if (epoch) % 10 == 0:  # Adjust the interval as needed
-        #     with torch.no_grad():  # Disable gradient calculation
-        #         # Visualize the first image in the epoch
-        #         visualize(image[0], sentence_masks[0], sentence_output[0])
+        if (epoch) % 10 == 0:
+            with torch.no_grad():
+                visualize(image[0], sentence_masks[0], sentence_output[0])
 
         if epoch == num_epochs-1:
             with torch.no_grad():  # Disable gradient calculation
@@ -364,7 +332,7 @@ def main():
     validate_dataloader = DataLoader(validate_dataset, batch_size=batch_size, shuffle=True)
 
     # Model training setup
-    model = CustomCRAFT().to(device)
+    model = segmentation_cnn().to(device)
     # criterion = nn.BCELoss()
     weight = (torch.tensor(calculate_sentence_weight(), dtype=torch.float32) / 1.3).to(device)
     criterion = nn.BCELoss(weight=weight)
@@ -411,32 +379,30 @@ def main_with_split():
     val_ratio = 0.2
     val_size = int(len(full_dataset) * val_ratio)
     train_size = len(full_dataset) - val_size
-
+    torch.manual_seed(187)
     train_dataset, validate_dataset = random_split(full_dataset, [train_size, val_size])
 
     print(f"Dataset split: {train_size} train, {val_size} validate")
 
     # === DataLoaders ===
-    batch_size = 16
+    batch_size = 8
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     validate_dataloader = DataLoader(validate_dataset, batch_size=batch_size, shuffle=False)
 
     # === Model setup ===
-    model = CustomCRAFT().to(device)
+    model = segmentation_cnn().to(device)
     weight = (torch.tensor(calculate_sentence_weight(), dtype=torch.float32) / 1.3).to(device)
     criterion = nn.BCELoss(weight=weight)
-    optimizer = optim.Adam(model.parameters(), lr=0.0001)
-    model_path = "small_sentence_model.pth"
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model_path = "new_small_sentence_model.pth"
 
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path, weights_only=True))
         print("Loaded existing model weights.")
 
-    # === Training ===
-    num_epochs = 300
-    train(model, train_dataloader, criterion, optimizer, device, num_epochs, "small_sentence_model", validate_dataloader, patience=100)
+    num_epochs = 100
+    train(model, train_dataloader, criterion, optimizer, device, num_epochs, "new_small_sentence_model", validate_dataloader, patience=100)
 
-    # === Testing ===
     test_dataset = CustomDataset2(os.path.join(base_dir, 'test'),
                                   os.path.join(base_dir, 'test'),
                                   transform=transform)
@@ -510,7 +476,7 @@ def extract_sentences_from_dataset(model, dataset_dir, output_dir=None, device='
 
 def extract_all_sentences():
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = CustomCRAFT()
+    model = segmentation_cnn()
     model.load_state_dict(torch.load("small_sentence_model.pth", map_location=device))
     model.to(device)
 
@@ -569,5 +535,5 @@ if __name__ == "__main__":
     print("Torch CUDA version:", torch.version.cuda)
     print("GPU devices:", torch.cuda.device_count())
     # main()
-    # main_with_split()
-    extract_all_sentences()
+    main_with_split()
+    # extract_all_sentences()

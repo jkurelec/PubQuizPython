@@ -1,7 +1,7 @@
 import asyncio
 from database import db_repo as repo
 # from geoalchemy2.shape import to_shape
-# from geopy.distance import geodesic
+from geopy.distance import geodesic
 from database.db_models import UserRecommendationParams, QuizEditionRecommendationParams, UserTopRecommendations
 
 
@@ -14,7 +14,7 @@ def compute_match(
     if weights is None:
         weights = {
             "rating": 5,
-            "duration": 1,
+            "duration": 2,
             "team_size": 1,
             "categories": 5,
             "hosts": 2,
